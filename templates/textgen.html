@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{%block content%}
+
+{% if query %}
+<center>
+<form action = "/gentext" method = "POST">
+    <textarea type = "text" name = "text to gen" rows="3" cols="50" padding="10px">введите текст</textarea></br>
+    <textarea type = "text" name = "n texts" rows="3" cols="50" padding="10px">введите количество</textarea></br>
+    <textarea type = "text" name = "text len" rows="3" cols="50" padding="10px">введите длину</textarea></br>
+    <input type = "submit" name="generate" value="сгенерировать текст"/>
+</form>  
+</center>
+{% endif %}
+
+{% if answer %}
+<br>
+<br>
+<br>
+<p>
+    {% for elem in result %}
+        {{ elem }}<br>
+    {% endfor %}
+</p>
+{% endif %}
+
+{%endblock%}

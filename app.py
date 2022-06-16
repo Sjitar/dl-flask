@@ -3,8 +3,9 @@ import os
 from flask import Flask, redirect, render_template, request, flash, url_for
 from werkzeug.utils import secure_filename
 from model.cnnmodel import predict
-from model.model_init import load_cnn_model, load_text_model
+from model.model_init import load_cnn_model, load_text_model, load_textgen_model
 from model.textmodel import get_sentiment
+from model.textgen import generate_text
 import concurrent
 
 UPLOAD_FOLDER = 'static/files/'
@@ -33,16 +34,18 @@ sent = {
 @app.before_first_request
 def init_models():
     # задаем глобальные переменные, в которые запишем модели
-    global cnn_model, text_model, tokenizer, text_generator_model, text_generator_tokenizer
+    global cnn_model, text_model, tokenizer, textgen_model, textgen_tokenizer
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         # создаем несколько потоков
-        cnn_future = executor.submit(load_cnn_model)
-        text_model_future = executor.submit(load_text_model)
+        # cnn_future = executor.submit(load_cnn_model)
+        # text_model_future = executor.submit(load_text_model)
+        textgen_model_future = executor.submit(load_textgen_model)
         
         # забираем результат из каждого потока 
-        cnn_model = cnn_future.result()
-        text_model, tokenizer = text_model_future.result()
+        # cnn_model = cnn_future.result()
+        # text_model, tokenizer = text_model_future.result()
+        textgen_model, textgen_tokenizer = textgen_model_future.result()
 
 
 def allowed_file(filename):
@@ -64,6 +67,10 @@ def sentiment():
 @app.route('/task')
 def task():
     return render_template('task.html')
+
+@app.route('/textgen')
+def textgen():
+    return render_template('textgen.html', query=True)
 
 @app.route('/uploader', methods = ['GET', 'POST'])
 def upload_file():
@@ -89,6 +96,20 @@ def sent_analysis():
 
     return render_template('sentiment.html', result=sent[result], text=text)
 
+@app.route('/gentext', methods=['POST'])
+def sent_generated_text():
+    if request.method == 'POST':
+        text_to_gen = request.form['text to gen']
+        n_texts = int(request.form['n texts'])
+        text_len = int(request.form['text len'])
+        inputs = textgen_tokenizer.encode(text_to_gen, return_tensors='pt')
+        result = []
+        out_text = generate_text(textgen_model, inputs, n_texts, text_len)
+        for outtxt in out_text:
+            result.append(textgen_tokenizer.decode(outtxt))
+        # print(result)
+
+    return render_template('textgen.html', result=result, answer=1)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000) 
